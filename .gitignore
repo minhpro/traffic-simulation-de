@@ -1,5 +1,9 @@
 # user-defined ignores (avoid committing large files)
 
+# ignore all hidden files and directories
+.*
+!/.gitignore
+
 *.swp
 *.zip
 

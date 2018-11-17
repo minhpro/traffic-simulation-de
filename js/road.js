@@ -43,7 +43,6 @@ they are specially drawn and externally influenced from the main program
 @return:                road segment instance
 */
 
-
 function road(roadID,roadLen,laneWidth,nLanes,traj_x,traj_y,
 	      densInitPerLane,speedInit,truckFracInit,isRing,doGridding){
 
@@ -115,9 +114,9 @@ function road(roadID,roadLen,laneWidth,nLanes,traj_x,traj_y,
 	var truckFracRest=(this.nLanes*truckFracInit>1)
 	    ? ((this.nLanes*truckFracInit-1)/(this.nLanes-1)) : 0;
 	var truckFrac=(lane===this.nLanes-1) ? truckFracRight : truckFracRest;
-	var vehType=(Math.random()<truckFrac) ? "truck" : "car";
-	var vehLength=(vehType === "car") ? car_length:truck_length;
-	var vehWidth=(vehType === "car") ? car_width:truck_width;
+	var vehType=vehTypeRandom(truckFrac)
+	var vehLength=getVehLength(vehType)
+	var vehWidth=getVehWidth(vehWidth)
 
         // actually construct vehicles (this also defined id)
 
@@ -2908,9 +2907,9 @@ road.prototype.updateTruckFrac=function(truckFrac, mismatchTolerated){
 
     if(Math.abs(truckFracReal-truckFrac)>mismatchTolerated){
 	var truckFracTooLow=(nTruckDesired>nTruck);
-	var newType=(truckFracTooLow) ? "truck" : "car";
-	var newLength=(truckFracTooLow) ? truck_length : car_length;
-	var newWidth=(truckFracTooLow) ? truck_width : car_width;
+	var newType=(truckFracTooLow) ? "truck" : carOrMotobike();
+	var newLength=getVehLength(newType)
+	var newWidth=getVehWidth(newType)
 	var newLongModel=(truckFracTooLow) ? longModelTruck : longModelCar;
 	var diffSpace=((truckFracTooLow) ? -1 : 1)* (truck_length-car_length);
 	var success=0; // false at beginning
@@ -3123,9 +3122,9 @@ road.prototype.updateBCup=function(Qin,dt,route){
 
   if(this.inVehBuffer>=1){
     // get new vehicle characteristics
-      var vehType=(Math.random()<truckFrac) ? "truck" : "car";
-      var vehLength=(vehType==="car") ? car_length:truck_length;
-      var vehWidth=(vehType==="car") ? car_width:truck_width;
+      var vehType=vehTypeRandom(truckFrac)
+      var vehLength=getVehLength(vehType)
+      var vehWidth=getVehWidth(vehType)
       var space=0; // available bumper-to-bumper space gap
 
       // try to set trucks at the right lane
@@ -3161,7 +3160,7 @@ road.prototype.updateBCup=function(Qin,dt,route){
       // actually insert new vehicle
 
       if(success){
-	  var longModelNew=(vehType==="car") ? longModelCar : longModelTruck;
+	  var longModelNew=isCarModel(vehType) ? longModelCar : longModelTruck;
 	  var uNew=0;
 	  var speedNew=Math.min(longModelNew.v0, longModelNew.speedlimit, 
 				space/longModelNew.T);
@@ -3286,9 +3285,9 @@ road.prototype.updateModelsOfAllVehicles=function(longModelCar,longModelTruck,
 
   for(var i=0; i<this.veh.length; i++){
       if(this.veh[i].isRegularVeh()){// then do nothing
-          this.veh[i].longModel=(this.veh[i].type === "car")
+          this.veh[i].longModel=isCarModel(this.veh[i].type)
 	    ? longModelCar : longModelTruck;
-          this.veh[i].LCModel=(this.veh[i].type === "car")
+          this.veh[i].LCModel=isCarModel(this.veh[i].type)
 	    ? LCModelCar : LCModelTruck;
       }
   }
@@ -3694,7 +3693,6 @@ road.prototype.drawVehicle=function(i,carImg, truckImg, obstacleImg, scale,
 				    speedmin,speedmax,xOffset,yOffset,
 				    otherRoad, uOffset){
 
-
     var phiVehRelMax=0.3;          // !! avoid vehicles turning too much
     var vehSizeShrinkFactor=0.85;  // to avoid overlapping in inner curves
 
@@ -3783,15 +3781,13 @@ road.prototype.drawVehicle=function(i,carImg, truckImg, obstacleImg, scale,
 
 
     // (4) draw vehicle as image
-
+	vehImg = getVehImg(type)
     var obstacleImg;
     if(type==="obstacle"){
-	      obstacleImg=obstacleImgs[obstacleImgIndex];
+		  obstacleImg=obstacleImgs[obstacleImgIndex];
+		  vehImg = obstacleImg
     }
 				
-    vehImg=(type==="car")
-	      ? carImg : (type==="truck")
-	      ? truckImg : obstacleImg;
     ctx.setTransform(cphiVeh, -sphiVeh, +sphiVeh, cphiVeh, 
 			   xCenterPix, yCenterPix);
     ctx.drawImage(vehImg, -0.5*vehLenPix, -0.5*vehWidthPix,
@@ -3803,8 +3799,8 @@ road.prototype.drawVehicle=function(i,carImg, truckImg, obstacleImg, scale,
     //     (different size of box because of mirrors of veh images)
 
     if(type!="obstacle"){
-        var effLenPix=(type==="car") ? 0.95*vehLenPix : 0.90*vehLenPix;
-        var effWPix=(type==="car") ? 0.55*vehWidthPix : 0.70*vehWidthPix;
+        var effLenPix=(isCarModel(type)) ? 0.95*vehLenPix : 0.90*vehLenPix;
+        var effWPix=(isCarModel(type)) ? 0.55*vehWidthPix : 0.70*vehWidthPix;
         var speed=this.veh[i].speed;
 	var isEgo=(this.veh[i].id===1);
         ctx.fillStyle=(this.veh[i].colorStyle==0)
@@ -3853,7 +3849,8 @@ road.prototype.drawVehicle=function(i,carImg, truckImg, obstacleImg, scale,
 			  +" xCenterPix="+xCenterPix
 			  +" yCenterPix="+yCenterPix
 			 );
-    }
+	}
+	console.log("Veh: " + type)
 }
 
 
