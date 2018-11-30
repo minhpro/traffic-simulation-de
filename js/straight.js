@@ -84,7 +84,8 @@ var scale=refSizePix/refSizePhys;
 // all relative "Rel" settings with respect to refSizePhys, not refSizePix!
 
 
-var straightLen=refSizePhys*critAspectRatio;
+// var straightLen=refSizePhys*critAspectRatio;
+var straightLen=refSizePhys*critAspectRatio*3;
 var mainroadLen=2*straightLen;
 
 
@@ -98,7 +99,7 @@ function updatePhysicalDimensions(){ // only if sizePhys changed
 // the following remains constant 
 // => road becomes more compact for smaller screens
 
-var laneWidth=10; // remains constant => road becomes more compact for smaller
+var laneWidth=15; // remains constant => road becomes more compact for smaller
 var laneWidthRamp=5;
 var nLanes_main=3;
 var nLanes_rmp=2;
